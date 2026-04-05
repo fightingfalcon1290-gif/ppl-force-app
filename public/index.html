@@ -826,10 +826,15 @@ function onSlotEnabled(dayIdx, slotId, checked) {
 
 async function saveSchedule() {
   try {
-    const r = await fetch('/.netlify/functions/save-schedule', {
+    const res = await fetch('/.netlify/functions/save-schedule', {
       method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(schedule)
-    }).then(r => r.json());
-    r.success ? toast('✅ スケジュールを保存しました') : toast('保存失敗', true);
+    });
+    const r = await res.json();
+    if (r.success) {
+      toast('✅ スケジュールを保存しました');
+    } else {
+      toast('保存失敗: ' + (r.error ?? `HTTP ${res.status}`), true);
+    }
   } catch(e) { toast('エラー: ' + e.message, true); }
 }
 
