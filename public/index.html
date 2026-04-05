@@ -479,15 +479,23 @@ async function loadConfig() {
   catch { config = {}; }
 }
 async function loadSchedule() {
+  // 1) localStorageから即座に読み込む（確実）
+  const local = localStorage.getItem('ppl-schedule');
+  if (local) {
+    try {
+      const parsed = JSON.parse(local);
+      if (Array.isArray(parsed) && parsed.length === 7) {
+        schedule = parsed.map(d => ({ day: d.day, dayName: d.dayName, slots: d.slots ?? [] }));
+        return;
+      }
+    } catch {}
+  }
+  // 2) localStorageにない場合のみBlobs試行（初回や別デバイス）
   try {
     const data = await fetch('/.netlify/functions/get-schedule').then(r => r.json());
     if (Array.isArray(data) && data.length === 7) {
-      // Migrate old format (had workout/time/enabled) to slots format
-      schedule = data.map(d => ({
-        day: d.day,
-        dayName: d.dayName,
-        slots: d.slots ?? [] // ignore old workout/time/enabled fields
-      }));
+      schedule = data.map(d => ({ day: d.day, dayName: d.dayName, slots: d.slots ?? [] }));
+      localStorage.setItem('ppl-schedule', JSON.stringify(schedule));
     }
   } catch { /* デフォルト値を維持 */ }
 }
@@ -496,9 +504,21 @@ async function loadTodayLog() {
   catch { todayLog = null; }
 }
 async function loadTasks() {
+  // 1) localStorageから即座に読み込む
+  const local = localStorage.getItem('ppl-tasks');
+  if (local) {
+    try {
+      const parsed = JSON.parse(local);
+      if (Array.isArray(parsed)) { tasks = parsed; return; }
+    } catch {}
+  }
+  // 2) localStorageにない場合のみBlobs試行
   try {
     const data = await fetch('/.netlify/functions/get-tasks').then(r => r.json());
-    if (Array.isArray(data)) tasks = data; // allow empty
+    if (Array.isArray(data)) {
+      tasks = data;
+      localStorage.setItem('ppl-tasks', JSON.stringify(tasks));
+    }
   } catch { /* デフォルト維持 */ }
 }
 function defaultTasks() { return []; }
@@ -825,17 +845,13 @@ function onSlotEnabled(dayIdx, slotId, checked) {
 }
 
 async function saveSchedule() {
-  try {
-    const res = await fetch('/.netlify/functions/save-schedule', {
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(schedule)
-    });
-    const r = await res.json();
-    if (r.success) {
-      toast('✅ スケジュールを保存しました');
-    } else {
-      toast('保存失敗: ' + (r.error ?? `HTTP ${res.status}`), true);
-    }
-  } catch(e) { toast('エラー: ' + e.message, true); }
+  // localStorageに即保存（確実）
+  localStorage.setItem('ppl-schedule', JSON.stringify(schedule));
+  toast('✅ スケジュールを保存しました');
+  // Blobsにもバックグラウンド同期（失敗しても問題なし）
+  fetch('/.netlify/functions/save-schedule', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(schedule)
+  }).catch(() => {});
 }
 
 // ═══════════════════════════════════════════
@@ -995,13 +1011,13 @@ function updateTaskColor(id, color) {
 }
 
 async function saveTasks() {
-  try {
-    await fetch('/.netlify/functions/save-tasks', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(tasks)
-    });
-    toast('✅ タスクを保存しました');
-  } catch(e) { toast('保存失敗: ' + e.message, true); }
+  // localStorageに即保存（確実）
+  localStorage.setItem('ppl-tasks', JSON.stringify(tasks));
+  // Blobsにもバックグラウンド同期（失敗しても問題なし）
+  fetch('/.netlify/functions/save-tasks', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(tasks)
+  }).catch(() => {});
 }
 
 async function testLine() {
