@@ -433,7 +433,7 @@
 // ═══════════════════════════════════════════
 // State
 // ═══════════════════════════════════════════
-let schedule     = [];
+let schedule     = defaultSched();
 let config       = {};
 let todayLog     = null;
 let timerStart   = null;
@@ -467,9 +467,9 @@ function toggleTheme() {
 window.addEventListener('load', async () => {
   await registerSW();
   await Promise.all([loadConfig(), loadSchedule(), loadTodayLog()]);
-  renderDashboard();
-  renderCalendar();
-  renderSettingsTab();
+  try { renderDashboard(); }   catch(e) { console.error('dashboard error:', e); }
+  try { renderCalendar(); }    catch(e) { console.error('calendar error:', e); }
+  try { renderSettingsTab(); } catch(e) { console.error('settings error:', e); }
   startCountdown();
 
   const p = new URLSearchParams(location.search);
@@ -493,8 +493,10 @@ async function loadConfig() {
   catch { config = {}; }
 }
 async function loadSchedule() {
-  try { schedule = await fetch('/.netlify/functions/get-schedule').then(r => r.json()); }
-  catch { schedule = defaultSched(); }
+  try {
+    const data = await fetch('/.netlify/functions/get-schedule').then(r => r.json());
+    if (Array.isArray(data) && data.length === 7) schedule = data;
+  } catch { /* デフォルト値を維持 */ }
 }
 async function loadTodayLog() {
   try { todayLog = await fetch('/.netlify/functions/log-workout').then(r => r.json()); }
