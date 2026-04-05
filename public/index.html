@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PPL FORCE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── Theme ── */
+    :root { --red:#ff3c3c; --amber:#ffa040; --blue:#3c8fff; --green:#3cff7a; --gray:#888899; }
+    [data-theme="dark"]  { --bg:#090910; --panel:#11111c; --panel2:#16162a; --border:#1e1e35; --text:#e0e0f0; --dim:#7070a0; --dimmer:#40405a; --shadow:rgba(0,0,0,.5); --scan:rgba(0,0,0,.04); }
+    [data-theme="light"] { --bg:#f0f2f8; --panel:#ffffff; --panel2:#f4f4fc; --border:#dcdcec; --text:#1a1a30; --dim:#6060a0; --dimmer:#aaaac0; --shadow:rgba(0,0,0,.1); --scan:rgba(0,0,0,0); }
+
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { background:var(--bg); color:var(--text); font-family:'Noto Sans JP',sans-serif; min-height:100vh; transition:background .25s,color .25s; }
+    body::after { content:''; position:fixed; inset:0; pointer-events:none; z-index:9999; background:repeating-linear-gradient(0deg,var(--scan) 0,var(--scan) 1px,transparent 1px,transparent 2px); }
+
+    /* ── Header ── */
+    header { background:var(--panel); border-bottom:2px solid var(--red); padding:.9rem 1.4rem; display:flex; align-items:center; gap:.8rem; box-shadow:0 2px 12px var(--shadow); position:sticky; top:0; z-index:100; }
+    .logo { flex:1; }
+    .logo-title { font-family:'Bebas Neue',sans-serif; font-size:2rem; letter-spacing:.15em; color:var(--red); line-height:1; }
+    .logo-sub   { font-size:.58rem; letter-spacing:.3em; color:var(--dim); text-transform:uppercase; }
+    .push-chip  { display:flex; align-items:center; gap:.4rem; font-size:.7rem; letter-spacing:.1em; color:var(--dim); background:var(--panel2); border:1px solid var(--border); padding:.3rem .7rem; border-radius:20px; white-space:nowrap; }
+    .push-chip .dot { width:7px; height:7px; border-radius:50%; background:var(--gray); }
+    .push-chip .dot.on   { background:var(--green); box-shadow:0 0 5px var(--green); }
+    .push-chip .dot.warn { background:var(--amber); box-shadow:0 0 5px var(--amber); }
+    .theme-toggle { background:var(--panel2); border:1px solid var(--border); border-radius:20px; padding:.3rem .4rem; display:flex; gap:.2rem; cursor:pointer; }
+    .theme-toggle span { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1rem; transition:background .2s; }
+    .theme-toggle span.active { background:var(--red); }
+
+    /* ── Nav ── */
+    nav { display:flex; background:var(--panel); border-bottom:1px solid var(--border); }
+    nav button { flex:1; background:transparent; border:none; cursor:pointer; font-family:'Bebas Neue',sans-serif; font-size:1rem; letter-spacing:.2em; color:var(--dim); padding:.75rem .5rem; border-bottom:3px solid transparent; transition:color .15s,border-color .15s; }
+    nav button.active { color:var(--text); border-bottom-color:var(--red); }
+    nav button:hover:not(.active) { color:var(--text); }
+
+    /* ── Layout ── */
+    main { max-width:860px; margin:0 auto; padding:1.4rem 1rem 4rem; }
+    section { display:none; }
+    section.active { display:block; }
+
+    /* ── Card ── */
+    .card { background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:1.2rem; margin-bottom:1rem; box-shadow:0 2px 8px var(--shadow); }
+    .card-title { font-family:'Bebas Neue',sans-serif; font-size:1rem; letter-spacing:.25em; color:var(--dim); margin-bottom:.9rem; display:flex; align-items:center; gap:.6rem; }
+    .card-title::before { content:''; width:3px; height:1em; background:var(--red); border-radius:2px; flex-shrink:0; }
+
+    /* ── Setup banner ── */
+    .setup-banner { background:linear-gradient(135deg,rgba(255,60,60,.08),rgba(255,160,64,.06)); border:1px solid rgba(255,60,60,.25); border-radius:6px; padding:1rem 1.2rem; margin-bottom:1rem; }
+    .setup-banner h2 { font-family:'Bebas Neue',sans-serif; font-size:1.1rem; letter-spacing:.2em; color:var(--red); margin-bottom:.6rem; }
+    .setup-step { display:flex; align-items:center; gap:.7rem; font-size:.82rem; color:var(--dim); padding:.25rem 0; }
+    .step-num { width:22px; height:22px; border-radius:50%; flex-shrink:0; border:1.5px solid var(--dimmer); font-family:'Bebas Neue',sans-serif; font-size:.85rem; display:flex; align-items:center; justify-content:center; color:var(--dimmer); }
+    .step-num.done { background:var(--green); border-color:var(--green); color:#0a0a10; }
+
+    /* ── Hero ── */
+    .hero { position:relative; height:190px; border-radius:6px; overflow:hidden; background:linear-gradient(135deg,var(--panel2),var(--panel)); border:1px solid var(--border); margin-bottom:1rem; display:flex; align-items:flex-end; }
+    .hero-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity .6s; }
+    .hero-overlay { position:relative; z-index:1; padding:.9rem 1.1rem; width:100%; background:linear-gradient(to top,rgba(9,9,16,.85),transparent); display:flex; align-items:flex-end; justify-content:space-between; }
+    [data-theme="light"] .hero-overlay { background:linear-gradient(to top,rgba(240,242,248,.85),transparent); }
+    .hero-workout { font-family:'Bebas Neue',sans-serif; font-size:3.2rem; letter-spacing:.12em; line-height:1; }
+    .hw-push{color:var(--red);} .hw-pull{color:var(--blue);} .hw-legs{color:var(--green);} .hw-rest{color:var(--gray);}
+    .hero-credit { font-size:.55rem; color:var(--dimmer); }
+    .hero-credit a { color:inherit; text-decoration:none; }
+
+    /* ── Stats ── */
+    .stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:.7rem; margin-bottom:1rem; }
+    @media(max-width:500px){ .stats-row{ grid-template-columns:repeat(2,1fr); } }
+    .stat-box { background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:.8rem; text-align:center; box-shadow:0 2px 6px var(--shadow); }
+    .stat-label { font-size:.6rem; letter-spacing:.2em; color:var(--dim); margin-bottom:.3rem; }
+    .stat-value { font-family:'Bebas Neue',sans-serif; font-size:1.8rem; line-height:1; }
+
+    /* ── Buttons ── */
+    .btn-row { display:flex; gap:.6rem; flex-wrap:wrap; margin-top:.9rem; }
+    .btn { font-family:'Bebas Neue',sans-serif; letter-spacing:.15em; font-size:.95rem; border:none; border-radius:4px; padding:.65rem 1.4rem; cursor:pointer; transition:filter .15s,transform .1s; display:inline-flex; align-items:center; gap:.4rem; }
+    .btn:active:not(:disabled) { transform:scale(.97); }
+    .btn:disabled { opacity:.35; cursor:not-allowed; }
+    .btn-red   { background:var(--red);   color:#fff; }
+    .btn-green { background:var(--green); color:#0a0a10; }
+    .btn-outline { background:transparent; border:1px solid var(--border); color:var(--dim); }
+    .btn-red:hover:not(:disabled)   { filter:brightness(1.12); }
+    .btn-green:hover:not(:disabled) { filter:brightness(1.08); }
+    .btn-outline:hover:not(:disabled) { border-color:var(--red); color:var(--red); }
+
+    /* ── Badge ── */
+    .badge { display:inline-flex; align-items:center; gap:.4rem; font-family:'Bebas Neue',sans-serif; font-size:.85rem; letter-spacing:.15em; padding:.25rem .7rem; border-radius:4px; }
+    .badge.safe   { background:rgba(60,255,122,.12); color:var(--green); border:1px solid var(--green); }
+    .badge.armed  { background:rgba(255,160,64,.12);  color:var(--amber); border:1px solid var(--amber); }
+    .badge.danger { background:rgba(255,60,60,.12);   color:var(--red);   border:1px solid var(--red); }
+    .badge.off    { background:transparent; color:var(--dimmer); border:1px solid var(--dimmer); }
+
+    /* ═══════════════════════════════════════════════
+       CALENDAR SCHEDULE — 7列横並びグリッド
+    ═══════════════════════════════════════════════ */
+
+    /* 外枠：横スクロール対応 */
+    #cal-table {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+
+    /* 7列グリッド */
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(105px, 1fr));
+      min-width: 700px;
+    }
+
+    /* 各曜日カラム */
+    .cal-col {
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+    }
+    .cal-col:last-child { border-right: none; }
+
+    /* カラムヘッダー（曜日・日付） */
+    .cal-col-head {
+      background: var(--panel2);
+      padding: .7rem .5rem;
+      text-align: center;
+      border-bottom: 2px solid var(--border);
+    }
+    .cal-col.is-today .cal-col-head {
+      background: rgba(255,60,60,.1);
+      border-bottom-color: var(--red);
+    }
+    .cal-wday {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.6rem;
+      letter-spacing: .06em;
+      line-height: 1;
+    }
+    .cal-col.is-today .cal-wday { color: var(--red); }
+    .cal-date-lbl { font-size: .62rem; color: var(--dim); margin-top: .15rem; }
+    .cal-today-chip {
+      display: inline-block;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: .58rem; letter-spacing: .12em;
+      background: var(--red); color: #fff;
+      padding: .06rem .45rem; border-radius: 2px;
+      margin-top: .25rem;
+    }
+
+    /* カラムボディ（コントロール群） */
+    .cal-col-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: .9rem .5rem;
+      gap: .7rem;
+      background: var(--panel);
+    }
+    .cal-col.is-disabled .cal-col-body { opacity: .32; }
+
+    /* ワークアウト選択ボタン */
+    .wp {
+      font-family: 'Bebas Neue', sans-serif;
+      letter-spacing: .1em;
+      font-size: .88rem;
+      padding: .45rem .3rem;
+      border-radius: 20px;
+      border: 1.5px solid transparent;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+      width: 100%;
+      text-align: center;
+      transition: filter .15s;
+    }
+    .wp:focus { outline: none; }
+    .wp:hover { filter: brightness(1.18); }
+    .wp.push { background:rgba(255,60,60,.2);  color:var(--red);   border-color:rgba(255,60,60,.5); }
+    .wp.pull { background:rgba(60,143,255,.2); color:var(--blue);  border-color:rgba(60,143,255,.5); }
+    .wp.legs { background:rgba(60,255,122,.2); color:var(--green); border-color:rgba(60,255,122,.5); }
+    .wp.rest { background:rgba(136,136,153,.2);color:var(--gray);  border-color:rgba(136,136,153,.5); }
+    .cal-col.is-disabled .wp { pointer-events: none; }
+
+    /* 時刻インプット */
+    .cal-ti {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--amber);
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: .95rem;
+      padding: .3rem .2rem;
+      text-align: center;
+      width: 100%;
+      cursor: pointer;
+    }
+    .cal-ti:focus { outline: none; border-color: var(--amber); }
+    .cal-ti::-webkit-calendar-picker-indicator { display: none; }
+    .cal-col.is-rest     .cal-ti { visibility: hidden; }
+    .cal-col.is-disabled .cal-ti { pointer-events: none; }
+
+    /* ON/OFF トグル */
+    .toggle { position:relative; width:38px; height:22px; }
+    .toggle input { opacity:0; width:0; height:0; position:absolute; }
+    .toggle-sl { position:absolute; inset:0; background:var(--dimmer); border-radius:22px; cursor:pointer; transition:background .2s; }
+    .toggle-sl::before { content:''; position:absolute; width:16px; height:16px; left:3px; top:3px; background:#fff; border-radius:50%; transition:transform .2s; box-shadow:0 1px 4px rgba(0,0,0,.3); }
+    .toggle input:checked + .toggle-sl { background:var(--red); }
+    .toggle input:checked + .toggle-sl::before { transform:translateX(16px); }
+
+    /* ── Timer overlay ── */
+    #timer-overlay { display:none; position:fixed; inset:0; z-index:500; background:rgba(9,9,16,.97); flex-direction:column; align-items:center; justify-content:center; gap:1rem; }
+    [data-theme="light"] #timer-overlay { background:rgba(240,242,248,.97); }
+    #timer-overlay.visible { display:flex; }
+    .ov-label { font-family:'Bebas Neue',sans-serif; font-size:1.1rem; letter-spacing:.4em; color:var(--dim); }
+    .ov-time  { font-family:'Bebas Neue',sans-serif; font-size:6rem; color:var(--red); line-height:1; }
+    .ov-hint  { font-size:.75rem; color:var(--dim); letter-spacing:.1em; }
+
+    /* ── Settings ── */
+    .api-list { display:flex; flex-direction:column; gap:.5rem; }
+    .api-row { display:flex; align-items:center; gap:.7rem; background:var(--panel2); border:1px solid var(--border); border-radius:4px; padding:.6rem .9rem; font-size:.82rem; }
+    .api-name { font-weight:700; min-width:90px; }
+    .api-env  { color:var(--dim); font-family:monospace; font-size:.73rem; flex:1; }
+    .api-dot  { width:8px; height:8px; border-radius:50%; background:var(--gray); flex-shrink:0; }
+    .api-dot.on { background:var(--green); box-shadow:0 0 5px var(--green); }
+    .form-group { display:flex; flex-direction:column; gap:.35rem; margin-bottom:.9rem; }
+    .form-label { font-size:.72rem; letter-spacing:.15em; color:var(--dim); }
+    .form-input { background:var(--panel2); border:1px solid var(--border); border-radius:4px; color:var(--text); font-family:'Noto Sans JP',sans-serif; font-size:.9rem; padding:.5rem .75rem; max-width:200px; }
+    .form-input:focus { outline:none; border-color:var(--red); }
+    .form-row { display:flex; align-items:center; gap:.8rem; flex-wrap:wrap; }
+    .help-text { font-size:.78rem; color:var(--dim); line-height:1.7; }
+    .help-text strong { color:var(--text); }
+
+    /* ── Toast ── */
+    #toast { position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%) translateY(5rem); background:var(--panel); border:1px solid var(--border); border-left:3px solid var(--green); color:var(--text); padding:.6rem 1.2rem; border-radius:4px; font-size:.8rem; transition:transform .25s,opacity .25s; opacity:0; z-index:600; white-space:nowrap; box-shadow:0 4px 16px var(--shadow); }
+    #toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+    #toast.err  { border-left-color:var(--red); }
+  </style>
+</head>
+<body>
+
+<!-- ── Timer Overlay ── -->
+<div id="timer-overlay">
+  <div class="ov-label" id="ov-workout">PUSH</div>
+  <div class="ov-time"  id="ov-time">00:00:00</div>
+  <div class="ov-hint">トレーニング中...</div>
+  <div class="btn-row" style="margin-top:.5rem; justify-content:center">
+    <button class="btn btn-outline" id="ov-pause" onclick="pauseTimer()">⏸ 一時停止</button>
+    <button class="btn btn-green"   onclick="completeWorkout()">✅ 完了を記録</button>
+    <button class="btn btn-outline" onclick="cancelTimer()">✕ キャンセル</button>
+  </div>
+</div>
+
+<!-- ── Header ── -->
+<header>
+  <div class="logo">
+    <div class="logo-title">PPL FORCE</div>
+    <div class="logo-sub">Habit Enforcement System</div>
+  </div>
+  <div class="push-chip" id="push-chip">
+    <div class="dot" id="push-dot"></div>
+    <span id="push-txt">PUSH: OFF</span>
+  </div>
+  <div class="theme-toggle" onclick="toggleTheme()" title="ダーク/ライト切替">
+    <span id="btn-dark"  class="active">🌙</span>
+    <span id="btn-light">☀️</span>
+  </div>
+</header>
+
+<!-- ── Tab Nav ── -->
+<nav>
+  <button class="active" onclick="switchTab('dashboard',this)">🏋️ ダッシュボード</button>
+  <button onclick="switchTab('schedule',this)">📅 スケジュール</button>
+  <button onclick="switchTab('settings',this)">⚙️ 設定</button>
+</nav>
+
+<main>
+
+<!-- ═══ TAB: DASHBOARD ═══ -->
+<section id="tab-dashboard" class="active">
+
+  <div class="setup-banner" id="setup-banner" style="display:none">
+    <h2>🚀 はじめに — セットアップ</h2>
+    <div id="setup-steps"></div>
+  </div>
+
+  <div class="hero" id="hero">
+    <img id="hero-img" class="hero-img" alt="">
+    <div class="hero-overlay">
+      <div>
+        <div style="font-size:.65rem;letter-spacing:.15em;color:var(--dim)" id="hero-date"></div>
+        <div class="hero-workout" id="hero-workout">---</div>
+      </div>
+      <div class="hero-credit" id="hero-credit"></div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-label">TODAY</div>
+      <div class="stat-value" style="color:var(--red)" id="stat-workout">---</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">NEXT PUSH</div>
+      <div class="stat-value" style="color:var(--amber)" id="countdown">--:--:--</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">STATUS</div>
+      <div class="stat-value" id="stat-status" style="font-size:1.2rem">...</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">TODAY'S MISSION</div>
+    <div class="btn-row">
+      <button class="btn btn-red"     id="start-btn"  onclick="openTimer()">▶&nbsp; トレーニング開始</button>
+      <button class="btn btn-outline" id="report-btn" onclick="sendLineReport()" style="display:none">📲 LINE報告</button>
+    </div>
+    <div style="margin-top:1rem; padding-top:1rem; border-top:1px solid var(--border)">
+      <div class="stat-label" style="margin-bottom:.4rem">PENALTY STATUS</div>
+      <div style="display:flex; align-items:center; gap:.8rem; flex-wrap:wrap">
+        <span class="badge off" id="penalty-badge">INACTIVE</span>
+        <span style="font-size:.78rem; color:var(--dim)" id="penalty-desc">設定タブで有効化</span>
+        <button class="btn btn-red" id="pay-btn" onclick="payPenalty()" style="display:none; padding:.4rem .9rem; font-size:.85rem">💳 罰金を支払う</button>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ═══ TAB: SCHEDULE ═══ -->
+<section id="tab-schedule">
+
+  <div class="card">
+    <div class="card-title">WEEKLY FLIGHT SCHEDULE</div>
+    <p class="help-text" style="margin-bottom:1.2rem">
+      各曜日の種目・通知時刻・ON/OFFを設定して
+      <strong>「スケジュールを保存」</strong>を押してください。
+      設定した時刻にPixel Watchへ通知が届きます。
+    </p>
+
+    <!-- Calendar table -->
+    <div id="cal-table">
+      <!-- JS で生成 -->
+    </div>
+
+    <div class="btn-row" style="margin-top:1.2rem">
+      <button class="btn btn-red" onclick="saveSchedule()">💾&nbsp; スケジュールを保存</button>
+    </div>
+  </div>
+
+</section>
+
+<!-- ═══ TAB: SETTINGS ═══ -->
+<section id="tab-settings">
+
+  <div class="card">
+    <div class="card-title">STEP 1 — PUSH通知</div>
+    <p class="help-text" style="margin-bottom:.9rem">ブラウザの通知を許可するとPixel Watchにも転送されます。</p>
+    <div class="btn-row">
+      <button class="btn btn-red"     id="notify-btn"   onclick="enablePush()">🔔&nbsp; 通知を有効化</button>
+      <button class="btn btn-outline" id="test-push-btn" onclick="testPush()">テスト送信</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">STEP 2 — 罰金設定（Stripe）</div>
+    <p class="help-text" style="margin-bottom:.9rem">
+      サボると設定時刻にStripe決済リンクがLINEに届きます。<br>
+      Stripeのテストキー（<code>sk_test_...</code>）で動作確認できます。
+    </p>
+    <div class="form-group">
+      <div class="form-label">罰金額（円）</div>
+      <div class="form-row">
+        <input type="number" id="penalty-input" class="form-input" min="100" max="50000" step="100" value="500">
+        <label class="toggle">
+          <input type="checkbox" id="penalty-toggle">
+          <span class="toggle-sl"></span>
+        </label>
+        <span class="help-text">有効にする</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <div class="form-label">罰金発動時刻（この時刻までに未完了で発動）</div>
+      <input type="time" id="penalty-hour-input" class="form-input" value="23:00">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-red"     onclick="savePenaltySettings()">💾&nbsp; 保存</button>
+      <button class="btn btn-outline" onclick="testPenalty()">テスト決済リンク</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">STEP 3 — LINE連携</div>
+    <p class="help-text" style="margin-bottom:.9rem">
+      完了・未完了をLINEに自動送信します。<br>
+      Netlify環境変数に設定してください：
+    </p>
+    <div class="api-list" style="margin-bottom:.9rem">
+      <div class="api-row">
+        <div class="api-dot" id="dot-line"></div>
+        <div class="api-name">LINE</div>
+        <div class="api-env">LINE_CHANNEL_ACCESS_TOKEN<br>LINE_USER_ID</div>
+        <span id="line-status" style="font-size:.72rem"></span>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="testLine()">📲 テスト送信</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">STEP 4 — 写真（Unsplash）</div>
+    <p class="help-text" style="margin-bottom:.9rem">
+      ダッシュボードにワークアウト別の写真が表示されます。<br>
+      <strong>unsplash.com/developers</strong> でAccess Keyを取得してください。
+    </p>
+    <div class="api-list">
+      <div class="api-row">
+        <div class="api-dot" id="dot-unsplash"></div>
+        <div class="api-name">Unsplash</div>
+        <div class="api-env">UNSPLASH_ACCESS_KEY</div>
+        <span id="unsplash-status" style="font-size:.72rem"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">API STATUS</div>
+    <div class="api-list" id="api-list"></div>
+  </div>
+
+</section>
+</main>
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════
+// State
+// ═══════════════════════════════════════════
+let schedule     = [];
+let config       = {};
+let todayLog     = null;
+let timerStart   = null;
+let timerPaused  = false;
+let timerAccum   = 0;
+let timerRaf     = null;
+let countdownInt = null;
+let currentWorkout = 'Push';
+
+// ═══════════════════════════════════════════
+// Theme
+// ═══════════════════════════════════════════
+function toggleTheme() {
+  const html = document.documentElement;
+  const next = html.dataset.theme === 'dark' ? 'light' : 'dark';
+  html.dataset.theme = next;
+  localStorage.setItem('ppl-theme', next);
+  document.getElementById('btn-dark').className  = next === 'dark'  ? 'active' : '';
+  document.getElementById('btn-light').className = next === 'light' ? 'active' : '';
+}
+(function() {
+  const t = localStorage.getItem('ppl-theme') ?? 'dark';
+  document.documentElement.dataset.theme = t;
+  document.getElementById('btn-dark').className  = t === 'dark'  ? 'active' : '';
+  document.getElementById('btn-light').className = t === 'light' ? 'active' : '';
+})();
+
+// ═══════════════════════════════════════════
+// Boot
+// ═══════════════════════════════════════════
+window.addEventListener('load', async () => {
+  await registerSW();
+  await Promise.all([loadConfig(), loadSchedule(), loadTodayLog()]);
+  renderDashboard();
+  renderCalendar();
+  renderSettingsTab();
+  startCountdown();
+
+  const p = new URLSearchParams(location.search);
+  if (p.get('action') === 'start') { openTimer(p.get('workout')); history.replaceState({}, '', '/'); }
+  if (p.get('payment') === 'success') { toast('罰金支払い完了。次こそ頑張れ！'); history.replaceState({}, '', '/'); }
+});
+
+async function registerSW() {
+  if (!('serviceWorker' in navigator)) return;
+  await navigator.serviceWorker.register('/sw.js');
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (e.data?.type === 'START_TIMER') openTimer(e.data.workout);
+  });
+}
+
+// ═══════════════════════════════════════════
+// Data
+// ═══════════════════════════════════════════
+async function loadConfig() {
+  try { config = await fetch('/.netlify/functions/get-config-status').then(r => r.json()); }
+  catch { config = {}; }
+}
+async function loadSchedule() {
+  try { schedule = await fetch('/.netlify/functions/get-schedule').then(r => r.json()); }
+  catch { schedule = defaultSched(); }
+}
+async function loadTodayLog() {
+  try { todayLog = await fetch('/.netlify/functions/log-workout').then(r => r.json()); }
+  catch { todayLog = null; }
+}
+function defaultSched() {
+  return [
+    {day:0,dayName:'日',workout:'Rest',time:'07:00',enabled:false},
+    {day:1,dayName:'月',workout:'Push',time:'07:00',enabled:true},
+    {day:2,dayName:'火',workout:'Pull',time:'07:00',enabled:true},
+    {day:3,dayName:'水',workout:'Legs',time:'07:00',enabled:true},
+    {day:4,dayName:'木',workout:'Push',time:'07:00',enabled:true},
+    {day:5,dayName:'金',workout:'Pull',time:'07:00',enabled:true},
+    {day:6,dayName:'土',workout:'Legs',time:'07:00',enabled:true},
+  ];
+}
+
+// ═══════════════════════════════════════════
+// Tabs
+// ═══════════════════════════════════════════
+function switchTab(id, btn) {
+  document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ═══════════════════════════════════════════
+// Dashboard
+// ═══════════════════════════════════════════
+function renderDashboard() {
+  const today = new Date().getDay();
+  const entry = schedule.find(s => s.day === today);
+  currentWorkout = entry?.workout ?? 'Push';
+
+  const now = new Date();
+  document.getElementById('hero-date').textContent =
+    now.toLocaleDateString('ja-JP', {year:'numeric', month:'long', day:'numeric', weekday:'long'});
+
+  const wEl = document.getElementById('hero-workout');
+  wEl.textContent = currentWorkout.toUpperCase();
+  wEl.className   = 'hero-workout hw-' + currentWorkout.toLowerCase();
+  document.getElementById('stat-workout').textContent = currentWorkout.toUpperCase();
+
+  // Status
+  const statusEl = document.getElementById('stat-status');
+  const completed = todayLog?.completed;
+  if (currentWorkout === 'Rest') {
+    statusEl.textContent = '🛌 REST'; statusEl.style.color = 'var(--gray)';
+  } else if (completed) {
+    statusEl.textContent = '✅ DONE'; statusEl.style.color = 'var(--green)';
+    document.getElementById('start-btn').innerHTML = '▶&nbsp; もう1セット';
+    if (config.line) document.getElementById('report-btn').style.display = '';
+  } else {
+    statusEl.textContent = '⏳ PENDING'; statusEl.style.color = 'var(--amber)';
+  }
+
+  renderPenalty(completed);
+  if (config.unsplash && currentWorkout !== 'Rest') loadHeroPhoto(currentWorkout);
+
+  // Push chip
+  const perm = Notification?.permission;
+  const dot = document.getElementById('push-dot');
+  const txt = document.getElementById('push-txt');
+  if (perm === 'granted')      { dot.className='dot on';   txt.textContent='PUSH: ON'; }
+  else if (perm === 'denied')  { dot.className='dot';      txt.textContent='PUSH: NG'; }
+  else                         { dot.className='dot warn'; txt.textContent='PUSH: ?'; }
+
+  // Setup banner
+  const steps = [
+    { label:'Push通知を有効化する',         done: perm === 'granted' },
+    { label:'スケジュールを設定して保存する', done: false },
+    { label:'Netlify環境変数を設定する',    done: config.line && config.stripe && config.unsplash },
+  ];
+  const anyOpen = steps.some(s => !s.done);
+  document.getElementById('setup-banner').style.display = anyOpen ? '' : 'none';
+  document.getElementById('setup-steps').innerHTML = steps.map((s,i) => `
+    <div class="setup-step">
+      <div class="step-num ${s.done?'done':''}">${s.done?'✓':i+1}</div>
+      <span style="color:${s.done?'var(--dim)':'var(--text)'};${s.done?'text-decoration:line-through':''}">${s.label}</span>
+    </div>`).join('');
+}
+
+function renderPenalty(completed) {
+  const badge  = document.getElementById('penalty-badge');
+  const desc   = document.getElementById('penalty-desc');
+  const payBtn = document.getElementById('pay-btn');
+  payBtn.style.display = 'none';
+
+  if (!config.penaltyEnabled || !config.stripe) {
+    badge.className = 'badge off'; badge.textContent = 'INACTIVE';
+    desc.textContent = config.stripe ? '設定タブで有効化できます' : 'Stripe環境変数を設定してください';
+    return;
+  }
+  const amt  = config.penaltyAmount ?? 500;
+  const hour = config.penaltyHour   ?? 23;
+
+  if (completed || currentWorkout === 'Rest') {
+    badge.className = 'badge safe'; badge.textContent = '✅ SAFE';
+    desc.textContent = '罰金なし — よく頑張りました！';
+  } else if (new Date().getHours() >= hour) {
+    badge.className = 'badge danger'; badge.textContent = '⚠️ PENALTY';
+    desc.textContent = `¥${amt.toLocaleString()} が発生しています`;
+    payBtn.style.display = '';
+  } else {
+    badge.className = 'badge armed'; badge.textContent = '🔒 ARMED';
+    desc.textContent = `${hour}:00 までに完了すれば回避 — 罰金 ¥${amt.toLocaleString()}`;
+  }
+}
+
+async function loadHeroPhoto(workout) {
+  try {
+    const p = await fetch(`/.netlify/functions/get-photo?workout=${encodeURIComponent(workout)}`).then(r => r.json());
+    if (!p.url) return;
+    const img = document.getElementById('hero-img');
+    img.src = p.url;
+    img.onload = () => img.style.opacity = .5;
+    if (p.author) {
+      document.getElementById('hero-credit').innerHTML =
+        `Photo: <a href="${p.authorUrl}" target="_blank" rel="noopener">${p.author}</a> / Unsplash`;
+    }
+  } catch { /* skip */ }
+}
+
+// ═══════════════════════════════════════════
+// Countdown
+// ═══════════════════════════════════════════
+function startCountdown() {
+  if (countdownInt) clearInterval(countdownInt);
+  tick(); countdownInt = setInterval(tick, 1000);
+}
+function tick() {
+  const next = nextTime();
+  const el   = document.getElementById('countdown');
+  if (!next) { el.textContent = '--:--:--'; return; }
+  const d = next - Date.now();
+  el.textContent = d <= 0 ? '00:00:00' : hms(d);
+}
+function nextTime() {
+  const now = new Date();
+  for (let i = 0; i < 7; i++) {
+    const e = schedule.find(s => s.day === (now.getDay()+i)%7 && s.enabled && s.workout !== 'Rest');
+    if (!e) continue;
+    const [hh, mm] = e.time.split(':').map(Number);
+    const d = new Date(now); d.setDate(now.getDate()+i); d.setHours(hh,mm,0,0);
+    if (d > now) return d;
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════
+// Calendar Schedule — 7列グリッド
+// ═══════════════════════════════════════════
+function renderCalendar() {
+  const today = new Date().getDay();
+  const now   = new Date();
+  const wrap  = document.getElementById('cal-table');
+  wrap.innerHTML = '';
+
+  const grid = document.createElement('div');
+  grid.className = 'cal-grid';
+
+  // 月〜日の順（1,2,3,4,5,6,0）
+  [1,2,3,4,5,6,0].forEach(dayIdx => {
+    const e = schedule.find(s => s.day === dayIdx);
+    if (!e) return;
+
+    const isToday    = dayIdx === today;
+    const isRest     = e.workout === 'Rest';
+    const isDisabled = !e.enabled;
+
+    // 今週の実際の日付を計算
+    const offset = (dayIdx - today + 7) % 7;
+    const d = new Date(now);
+    d.setDate(now.getDate() + offset);
+    const dateStr = `${d.getMonth()+1}/${d.getDate()}`;
+
+    const col = document.createElement('div');
+    col.className = [
+      'cal-col',
+      isToday    ? 'is-today'    : '',
+      isDisabled ? 'is-disabled' : '',
+      isRest     ? 'is-rest'     : '',
+    ].filter(Boolean).join(' ');
+    col.dataset.day = dayIdx;
+
+    col.innerHTML = `
+      <div class="cal-col-head">
+        <div class="cal-wday">${e.dayName}</div>
+        <div class="cal-date-lbl">${dateStr}</div>
+        ${isToday ? '<div class="cal-today-chip">TODAY</div>' : ''}
+      </div>
+      <div class="cal-col-body">
+        <select class="wp ${e.workout.toLowerCase()}" data-day="${dayIdx}" onchange="onW(this)">
+          <option${e.workout==='Push'?' selected':''}>Push</option>
+          <option${e.workout==='Pull'?' selected':''}>Pull</option>
+          <option${e.workout==='Legs'?' selected':''}>Legs</option>
+          <option${e.workout==='Rest'?' selected':''}>Rest</option>
+        </select>
+        <input type="time" class="cal-ti" value="${e.time}" data-day="${dayIdx}" onchange="onT(this)">
+        <label class="toggle">
+          <input type="checkbox" ${e.enabled?'checked':''} data-day="${dayIdx}" onchange="onTog(this)">
+          <span class="toggle-sl"></span>
+        </label>
+      </div>`;
+
+    grid.appendChild(col);
+  });
+
+  wrap.appendChild(grid);
+}
+
+function onW(sel) {
+  const e = schedule.find(s => s.day == sel.dataset.day);
+  e.workout = sel.value;
+  sel.className = 'wp ' + sel.value.toLowerCase();
+  syncRow(e.day);
+}
+function onT(inp) { schedule.find(s => s.day == inp.dataset.day).time = inp.value; }
+function onTog(chk) {
+  const e = schedule.find(s => s.day == chk.dataset.day);
+  e.enabled = chk.checked;
+  syncRow(e.day);
+}
+function syncRow(day) {
+  const e  = schedule.find(s => s.day == day);
+  const el = document.querySelector(`.cal-col[data-day="${day}"]`);
+  if (!el) return;
+  el.classList.toggle('is-disabled', !e.enabled);
+  el.classList.toggle('is-rest',     e.workout === 'Rest');
+}
+async function saveSchedule() {
+  try {
+    const r = await fetch('/.netlify/functions/save-schedule', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(schedule)
+    }).then(r => r.json());
+    r.success ? toast('✅ スケジュールを保存しました') : toast('保存失敗', true);
+  } catch(e) { toast('エラー: ' + e.message, true); }
+}
+
+// ═══════════════════════════════════════════
+// Settings
+// ═══════════════════════════════════════════
+function renderSettingsTab() {
+  const btn = document.getElementById('notify-btn');
+  if (Notification?.permission === 'granted') { btn.textContent='✅ 通知: 有効'; btn.disabled=true; }
+  else if (Notification?.permission === 'denied') { btn.textContent='通知がブロックされています'; btn.disabled=true; }
+
+  document.getElementById('penalty-input').value    = config.penaltyAmount  ?? 500;
+  document.getElementById('penalty-toggle').checked  = config.penaltyEnabled ?? false;
+  const h = config.penaltyHour ?? 23;
+  document.getElementById('penalty-hour-input').value = `${String(h).padStart(2,'0')}:00`;
+
+  const setDot = (id, on, statusId) => {
+    const d = document.getElementById(id);
+    if (d) d.className = 'api-dot ' + (on ? 'on' : 'off');
+    const s = document.getElementById(statusId);
+    if (s) { s.textContent = on ? '✅ 設定済' : '未設定'; s.style.color = on ? 'var(--green)' : 'var(--dim)'; }
+  };
+  setDot('dot-line',     config.line,     'line-status');
+  setDot('dot-unsplash', config.unsplash, 'unsplash-status');
+
+  const apis = [
+    { name:'Web Push', env:'VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY / VAPID_EMAIL', on:config.push },
+    { name:'LINE',     env:'LINE_CHANNEL_ACCESS_TOKEN / LINE_USER_ID',           on:config.line },
+    { name:'Stripe',   env:'STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET',          on:config.stripe },
+    { name:'Unsplash', env:'UNSPLASH_ACCESS_KEY',                                on:config.unsplash },
+  ];
+  document.getElementById('api-list').innerHTML = apis.map(a => `
+    <div class="api-row">
+      <div class="api-dot ${a.on?'on':'off'}"></div>
+      <div class="api-name">${a.name}</div>
+      <div class="api-env">${a.env}</div>
+      <span style="font-size:.72rem;color:${a.on?'var(--green)':'var(--dim)'}">${a.on?'✅':'未設定'}</span>
+    </div>`).join('');
+}
+
+async function enablePush() {
+  if (!('PushManager' in window)) { toast('このブラウザはPush非対応', true); return; }
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') { toast('通知が拒否されました', true); return; }
+  try {
+    const { publicKey, error } = await fetch('/.netlify/functions/get-vapid-key').then(r => r.json());
+    if (error || !publicKey) { toast('VAPID未設定 — .envを確認してください', true); return; }
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:b64u(publicKey) });
+    const r   = await fetch('/.netlify/functions/subscribe', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(sub)
+    }).then(r => r.json());
+    if (r.success) {
+      toast('🔔 Push通知を有効化しました！');
+      const btn = document.getElementById('notify-btn');
+      btn.textContent = '✅ 通知: 有効'; btn.disabled = true;
+      renderDashboard();
+    } else toast('登録失敗', true);
+  } catch(e) { toast('エラー: ' + e.message, true); }
+}
+async function testPush() {
+  if (Notification?.permission !== 'granted') { toast('先に通知を有効化してください', true); return; }
+  const reg = await navigator.serviceWorker.ready;
+  await reg.showNotification('PPL FORCE — テスト通知', {
+    body: '通知は正常に機能しています！',
+    icon: '/icon.png',
+    actions: [{ action:'start', title:'▶ 今すぐ開始' }, { action:'snooze', title:'⏰ スヌーズ10分' }]
+  });
+  toast('テスト通知を送信しました');
+}
+async function savePenaltySettings() {
+  const amount  = parseInt(document.getElementById('penalty-input').value);
+  const enabled = document.getElementById('penalty-toggle').checked;
+  const hour    = parseInt(document.getElementById('penalty-hour-input').value.split(':')[0]);
+  try {
+    await fetch('/.netlify/functions/save-settings', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ penaltyAmount:amount, penaltyEnabled:enabled, penaltyHour:hour })
+    });
+    Object.assign(config, { penaltyAmount:amount, penaltyEnabled:enabled, penaltyHour:hour });
+    toast('✅ ペナルティ設定を保存しました');
+    renderPenalty(todayLog?.completed);
+  } catch(e) { toast('エラー: ' + e.message, true); }
+}
+async function payPenalty() {
+  if (!config.stripe) { toast('Stripe未設定', true); return; }
+  try {
+    const { url, error } = await fetch('/.netlify/functions/create-checkout', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ amount:config.penaltyAmount??500, workout:currentWorkout, date:new Date().toISOString().slice(0,10) })
+    }).then(r => r.json());
+    if (error) { toast('エラー: ' + error, true); return; }
+    window.open(url, '_blank');
+  } catch(e) { toast('エラー: ' + e.message, true); }
+}
+async function testPenalty() { await payPenalty(); }
+async function sendLineReport() {
+  try {
+    const r = await fetch('/.netlify/functions/line-report', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ workout:currentWorkout, completed:true, duration:todayLog?.duration??0 })
+    }).then(r => r.json());
+    r.success ? toast('📲 LINE送信完了！') : toast('LINE送信失敗: '+(r.error??''), true);
+  } catch(e) { toast('エラー: ' + e.message, true); }
+}
+async function testLine() {
+  if (!config.line) { toast('LINE未設定 — 環境変数を確認してください', true); return; }
+  await sendLineReport();
+}
+
+// ═══════════════════════════════════════════
+// Timer
+// ═══════════════════════════════════════════
+function openTimer(workout) {
+  workout = workout ?? currentWorkout;
+  document.getElementById('ov-workout').textContent = String(workout).toUpperCase();
+  document.getElementById('timer-overlay').classList.add('visible');
+  timerAccum = 0; timerPaused = false; timerStart = Date.now();
+  document.getElementById('ov-pause').textContent = '⏸ 一時停止';
+  rafLoop();
+}
+function rafLoop() {
+  if (timerPaused) return;
+  document.getElementById('ov-time').textContent = hms(timerAccum + Date.now() - timerStart);
+  timerRaf = requestAnimationFrame(rafLoop);
+}
+function pauseTimer() {
+  if (timerPaused) {
+    timerStart = Date.now(); timerPaused = false;
+    document.getElementById('ov-pause').textContent = '⏸ 一時停止';
+    rafLoop();
+  } else {
+    timerAccum += Date.now() - timerStart; timerPaused = true;
+    cancelAnimationFrame(timerRaf);
+    document.getElementById('ov-pause').textContent = '▶ 再開';
+  }
+}
+function cancelTimer() {
+  cancelAnimationFrame(timerRaf);
+  timerStart = null; timerPaused = false; timerAccum = 0;
+  document.getElementById('timer-overlay').classList.remove('visible');
+}
+async function completeWorkout() {
+  const elapsed  = timerAccum + (timerStart ? Date.now() - timerStart : 0);
+  const workout  = currentWorkout;
+  const duration = Math.floor(elapsed / 1000);
+  cancelTimer();
+  try {
+    await fetch('/.netlify/functions/log-workout', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ workout, duration })
+    });
+    todayLog = { completed:true, workout, duration };
+  } catch { toast('ログ保存失敗', true); }
+  if (config.line) {
+    fetch('/.netlify/functions/line-report', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ workout, completed:true, duration })
+    }).catch(() => {});
+  }
+  renderDashboard();
+  toast(`✅ ${workout} 完了！${dur(duration)} お疲れ様！`);
+}
+
+// ═══════════════════════════════════════════
+// Helpers
+// ═══════════════════════════════════════════
+function hms(ms) {
+  const s=Math.floor(ms/1000);
+  return `${p(Math.floor(s/3600))}:${p(Math.floor(s%3600/60))}:${p(s%60)}`;
+}
+function dur(s) { return s>=3600?`${Math.floor(s/3600)}h${Math.floor(s%3600/60)}m`:`${Math.floor(s/60)}m`; }
+function p(n)   { return String(n).padStart(2,'0'); }
+function b64u(b) {
+  const pad='='.repeat((4-b.length%4)%4);
+  return Uint8Array.from([...atob((b+pad).replace(/-/g,'+').replace(/_/g,'/'))].map(c=>c.charCodeAt(0)));
+}
+let _tt;
+function toast(msg, isErr=false) {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='show'+(isErr?' err':'');
+  clearTimeout(_tt); _tt=setTimeout(()=>el.className='', 3500);
+}
+</script>
+</body>
+</html>

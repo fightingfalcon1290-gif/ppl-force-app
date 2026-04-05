@@ -1,0 +1,16 @@
+{
+  "name": "ppl-force-app",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "netlify dev",
+    "generate-vapid": "node scripts/generate-vapid-keys.mjs"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0",
+    "@netlify/functions": "^2.8.1",
+    "stripe": "^14.0.0",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {}
+}
