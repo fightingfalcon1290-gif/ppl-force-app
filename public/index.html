@@ -142,58 +142,6 @@
       margin-top: .25rem;
     }
 
-    /* カラムボディ（コントロール群） */
-    .cal-col-body {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: .9rem .5rem;
-      gap: .7rem;
-      background: var(--panel);
-    }
-    .cal-col.is-disabled .cal-col-body { opacity: .32; }
-
-    /* ワークアウト選択ボタン */
-    .wp {
-      font-family: 'Bebas Neue', sans-serif;
-      letter-spacing: .1em;
-      font-size: .88rem;
-      padding: .45rem .3rem;
-      border-radius: 20px;
-      border: 1.5px solid transparent;
-      appearance: none;
-      -webkit-appearance: none;
-      cursor: pointer;
-      width: 100%;
-      text-align: center;
-      transition: filter .15s;
-    }
-    .wp:focus { outline: none; }
-    .wp:hover { filter: brightness(1.18); }
-    .wp.push { background:rgba(255,60,60,.2);  color:var(--red);   border-color:rgba(255,60,60,.5); }
-    .wp.pull { background:rgba(60,143,255,.2); color:var(--blue);  border-color:rgba(60,143,255,.5); }
-    .wp.legs { background:rgba(60,255,122,.2); color:var(--green); border-color:rgba(60,255,122,.5); }
-    .wp.rest { background:rgba(136,136,153,.2);color:var(--gray);  border-color:rgba(136,136,153,.5); }
-    .cal-col.is-disabled .wp { pointer-events: none; }
-
-    /* 時刻インプット */
-    .cal-ti {
-      background: var(--panel2);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      color: var(--amber);
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: .95rem;
-      padding: .3rem .2rem;
-      text-align: center;
-      width: 100%;
-      cursor: pointer;
-    }
-    .cal-ti:focus { outline: none; border-color: var(--amber); }
-    .cal-ti::-webkit-calendar-picker-indicator { display: none; }
-    .cal-col.is-rest     .cal-ti { visibility: hidden; }
-    .cal-col.is-disabled .cal-ti { pointer-events: none; }
 
     /* ON/OFF トグル */
     .toggle { position:relative; width:38px; height:22px; }
@@ -202,6 +150,21 @@
     .toggle-sl::before { content:''; position:absolute; width:16px; height:16px; left:3px; top:3px; background:#fff; border-radius:50%; transition:transform .2s; box-shadow:0 1px 4px rgba(0,0,0,.3); }
     .toggle input:checked + .toggle-sl { background:var(--red); }
     .toggle input:checked + .toggle-sl::before { transform:translateX(16px); }
+
+    /* ── Slot cards (時間割) ── */
+    .slot-card { display:flex; align-items:center; gap:.35rem; padding:.3rem .2rem; border-bottom:1px solid var(--border); }
+    .slot-card:last-of-type { border-bottom:none; }
+    .slot-time { background:var(--panel); border:1px solid var(--border); border-radius:3px; color:var(--amber); font-family:'Bebas Neue',sans-serif; font-size:.82rem; padding:.18rem .15rem; text-align:center; width:68px; cursor:pointer; flex-shrink:0; }
+    .slot-time:focus { outline:none; border-color:var(--amber); }
+    .slot-time::-webkit-calendar-picker-indicator { display:none; }
+    .slot-task { flex:1; min-width:0; font-family:'Bebas Neue',sans-serif; font-size:.78rem; letter-spacing:.06em; border:1.5px solid transparent; border-radius:12px; appearance:none; -webkit-appearance:none; padding:.28rem .3rem; cursor:pointer; text-align:center; width:100%; }
+    .slot-task:focus { outline:none; }
+    .slot-tog { flex-shrink:0; }
+    .slot-del { background:none; border:none; color:var(--dimmer); cursor:pointer; font-size:.9rem; line-height:1; padding:.1rem .15rem; flex-shrink:0; }
+    .slot-del:hover { color:var(--red); }
+    .add-slot-btn { width:100%; border:1px dashed var(--border); background:none; color:var(--dim); font-size:.72rem; letter-spacing:.1em; padding:.35rem; border-radius:4px; cursor:pointer; margin-top:.4rem; }
+    .add-slot-btn:hover { border-color:var(--red); color:var(--red); }
+    .cal-col-body { flex:1; display:flex; flex-direction:column; padding:.6rem .4rem; background:var(--panel); min-height:60px; }
 
     /* ── Timer overlay ── */
     #timer-overlay { display:none; position:fixed; inset:0; z-index:500; background:rgba(9,9,16,.97); flex-direction:column; align-items:center; justify-content:center; gap:1rem; }
@@ -306,9 +269,10 @@
   </div>
 
   <div class="card">
-    <div class="card-title">TODAY'S MISSION</div>
+    <div class="card-title">TODAY'S TASKS</div>
+    <div id="today-slots" style="margin-bottom:.8rem"></div>
     <div class="btn-row">
-      <button class="btn btn-red"     id="start-btn"  onclick="openTimer()">▶&nbsp; トレーニング開始</button>
+      <button class="btn btn-red"     id="start-btn"  onclick="openTimer()">▶&nbsp; 開始</button>
       <button class="btn btn-outline" id="report-btn" onclick="sendLineReport()" style="display:none">📲 LINE報告</button>
     </div>
     <div style="margin-top:1rem; padding-top:1rem; border-top:1px solid var(--border)">
@@ -327,11 +291,10 @@
 <section id="tab-schedule">
 
   <div class="card">
-    <div class="card-title">WEEKLY FLIGHT SCHEDULE</div>
+    <div class="card-title">WEEKLY TIMETABLE</div>
     <p class="help-text" style="margin-bottom:1.2rem">
-      各曜日の種目・通知時刻・ON/OFFを設定して
-      <strong>「スケジュールを保存」</strong>を押してください。
-      設定した時刻にPixel Watchへ通知が届きます。
+      各曜日に複数のタスクと時刻を設定できます。
+      <strong>「＋」</strong>でスロット追加、設定後は<strong>「保存」</strong>を押してください。
     </p>
 
     <!-- Calendar table -->
@@ -406,10 +369,9 @@
 
   <!-- タスク管理 -->
   <div class="card">
-    <div class="card-title">タスク管理</div>
+    <div class="card-title">STEP 1 — タスク管理</div>
     <p class="help-text" style="margin-bottom:.9rem">
-      自由にタスクを追加できます。スケジュールカレンダーに反映されます。<br>
-      <strong>Push / Pull / Legs / Rest</strong> はデフォルトタスクです。
+      まずここでタスクを作成してください。作成後、スケジュールタブで時間割に追加できます。
     </p>
 
     <div id="task-list" style="display:flex;flex-direction:column;gap:.45rem;margin-bottom:1rem"></div>
@@ -465,7 +427,7 @@ let timerPaused   = false;
 let timerAccum    = 0;
 let timerRaf      = null;
 let countdownInt  = null;
-let currentWorkout = 'Push';
+let currentWorkout = null; // task name of the active/next task
 
 // ═══════════════════════════════════════════
 // Theme
@@ -519,7 +481,14 @@ async function loadConfig() {
 async function loadSchedule() {
   try {
     const data = await fetch('/.netlify/functions/get-schedule').then(r => r.json());
-    if (Array.isArray(data) && data.length === 7) schedule = data;
+    if (Array.isArray(data) && data.length === 7) {
+      // Migrate old format (had workout/time/enabled) to slots format
+      schedule = data.map(d => ({
+        day: d.day,
+        dayName: d.dayName,
+        slots: d.slots ?? [] // ignore old workout/time/enabled fields
+      }));
+    }
   } catch { /* デフォルト値を維持 */ }
 }
 async function loadTodayLog() {
@@ -529,27 +498,29 @@ async function loadTodayLog() {
 async function loadTasks() {
   try {
     const data = await fetch('/.netlify/functions/get-tasks').then(r => r.json());
-    if (Array.isArray(data) && data.length > 0) tasks = data;
+    if (Array.isArray(data)) tasks = data; // allow empty
   } catch { /* デフォルト維持 */ }
 }
-function defaultTasks() {
-  return [
-    { id: 'push', name: 'Push',  color: '#ff3c3c', isRest: false },
-    { id: 'pull', name: 'Pull',  color: '#3c8fff', isRest: false },
-    { id: 'legs', name: 'Legs',  color: '#3cff7a', isRest: false },
-    { id: 'rest', name: 'Rest',  color: '#888899', isRest: true  },
-  ];
-}
+function defaultTasks() { return []; }
 function defaultSched() {
   return [
-    {day:0,dayName:'日',workout:'Rest',time:'07:00',enabled:false},
-    {day:1,dayName:'月',workout:'Push',time:'07:00',enabled:true},
-    {day:2,dayName:'火',workout:'Pull',time:'07:00',enabled:true},
-    {day:3,dayName:'水',workout:'Legs',time:'07:00',enabled:true},
-    {day:4,dayName:'木',workout:'Push',time:'07:00',enabled:true},
-    {day:5,dayName:'金',workout:'Pull',time:'07:00',enabled:true},
-    {day:6,dayName:'土',workout:'Legs',time:'07:00',enabled:true},
+    {day:0,dayName:'日',slots:[]},
+    {day:1,dayName:'月',slots:[]},
+    {day:2,dayName:'火',slots:[]},
+    {day:3,dayName:'水',slots:[]},
+    {day:4,dayName:'木',slots:[]},
+    {day:5,dayName:'金',slots:[]},
+    {day:6,dayName:'土',slots:[]},
   ];
+}
+
+// ─── Task helpers ───────────────────────────
+function getTask(taskId) { return tasks.find(t => t.id === taskId) ?? null; }
+function taskStyleById(taskId) {
+  const t = getTask(taskId) ?? { color: '#888899' };
+  const hex = t.color;
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return `background:rgba(${r},${g},${b},.2);color:${hex};border-color:rgba(${r},${g},${b},.55)`;
 }
 
 // ═══════════════════════════════════════════
@@ -565,24 +536,48 @@ function switchTab(id, btn) {
 // ═══════════════════════════════════════════
 // Dashboard
 // ═══════════════════════════════════════════
-function renderDashboard() {
+function todayActiveSlots() {
   const today = new Date().getDay();
-  const entry = schedule.find(s => s.day === today);
-  currentWorkout = entry?.workout ?? 'Push';
+  const dayEntry = schedule.find(s => s.day === today);
+  return (dayEntry?.slots ?? [])
+    .filter(sl => sl.enabled && getTask(sl.taskId) && !getTask(sl.taskId).isRest)
+    .sort((a,b) => a.time.localeCompare(b.time));
+}
 
+function renderDashboard() {
   const now = new Date();
+  const nowTimeStr = `${p(now.getHours())}:${p(now.getMinutes())}`;
+  const activeSlots = todayActiveSlots();
+
+  // Pick next upcoming slot (or last one if all past)
+  const nextSlot = activeSlots.find(sl => sl.time >= nowTimeStr) ?? activeSlots[activeSlots.length - 1] ?? null;
+  const nextTask = nextSlot ? getTask(nextSlot.taskId) : null;
+  currentWorkout = nextTask?.name ?? null;
+
   document.getElementById('hero-date').textContent =
     now.toLocaleDateString('ja-JP', {year:'numeric', month:'long', day:'numeric', weekday:'long'});
 
   const wEl = document.getElementById('hero-workout');
-  wEl.textContent = currentWorkout.toUpperCase();
-  wEl.className   = 'hero-workout hw-' + currentWorkout.toLowerCase();
-  document.getElementById('stat-workout').textContent = currentWorkout.toUpperCase();
+  wEl.style.color = '';
+  if (activeSlots.length === 0) {
+    wEl.textContent = 'NO TASKS'; wEl.className = 'hero-workout hw-rest';
+    document.getElementById('stat-workout').textContent = '---';
+  } else if (activeSlots.length === 1) {
+    wEl.textContent = (nextTask?.name ?? '?').toUpperCase();
+    wEl.className = 'hero-workout';
+    wEl.style.color = nextTask?.color ?? 'var(--gray)';
+    document.getElementById('stat-workout').textContent = (nextTask?.name ?? '?').toUpperCase();
+  } else {
+    wEl.textContent = `${activeSlots.length} TASKS`;
+    wEl.className = 'hero-workout';
+    wEl.style.color = 'var(--amber)';
+    document.getElementById('stat-workout').textContent = `${activeSlots.length} TASKS`;
+  }
 
   // Status
   const statusEl = document.getElementById('stat-status');
   const completed = todayLog?.completed;
-  if (currentWorkout === 'Rest') {
+  if (activeSlots.length === 0) {
     statusEl.textContent = '🛌 REST'; statusEl.style.color = 'var(--gray)';
   } else if (completed) {
     statusEl.textContent = '✅ DONE'; statusEl.style.color = 'var(--green)';
@@ -592,8 +587,9 @@ function renderDashboard() {
     statusEl.textContent = '⏳ PENDING'; statusEl.style.color = 'var(--amber)';
   }
 
+  renderTodaySlots(activeSlots);
   renderPenalty(completed);
-  if (config.unsplash && currentWorkout !== 'Rest') loadHeroPhoto(currentWorkout);
+  if (config.unsplash && nextTask) loadHeroPhoto(nextTask.name);
 
   // Push chip
   const perm = Notification?.permission;
@@ -604,10 +600,11 @@ function renderDashboard() {
   else                         { dot.className='dot warn'; txt.textContent='PUSH: ?'; }
 
   // Setup banner
+  const hasSchedule = schedule.some(d => (d.slots ?? []).length > 0);
   const steps = [
-    { label:'Push通知を有効化する',         done: perm === 'granted' },
-    { label:'スケジュールを設定して保存する', done: false },
-    { label:'Netlify環境変数を設定する',    done: config.line && config.stripe && config.unsplash },
+    { label:'設定タブでタスクを作成する',       done: tasks.length > 0 },
+    { label:'スケジュールタブで時間割を設定する', done: hasSchedule },
+    { label:'Push通知を有効化する',              done: perm === 'granted' },
   ];
   const anyOpen = steps.some(s => !s.done);
   document.getElementById('setup-banner').style.display = anyOpen ? '' : 'none';
@@ -616,6 +613,25 @@ function renderDashboard() {
       <div class="step-num ${s.done?'done':''}">${s.done?'✓':i+1}</div>
       <span style="color:${s.done?'var(--dim)':'var(--text)'};${s.done?'text-decoration:line-through':''}">${s.label}</span>
     </div>`).join('');
+}
+
+function renderTodaySlots(activeSlots) {
+  const el = document.getElementById('today-slots');
+  if (!el) return;
+  if (activeSlots.length === 0) {
+    el.innerHTML = '<p style="font-size:.82rem;color:var(--dim)">今日のタスクはありません</p>';
+    return;
+  }
+  el.innerHTML = activeSlots.map(sl => {
+    const t = getTask(sl.taskId);
+    const name = t?.name ?? '?';
+    const color = t?.color ?? 'var(--dim)';
+    return `<div style="display:flex;align-items:center;gap:.7rem;padding:.3rem 0;border-bottom:1px solid var(--border)">
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:.9rem;color:var(--amber);min-width:50px">${sl.time}</span>
+      <span style="flex:1;font-size:.88rem;font-weight:700;color:${color}">${name}</span>
+      <button class="btn btn-outline" style="padding:.25rem .75rem;font-size:.82rem" onclick="openTimer(${JSON.stringify(name)})">▶</button>
+    </div>`;
+  }).join('');
 }
 
 function renderPenalty(completed) {
@@ -676,32 +692,31 @@ function tick() {
 function nextTime() {
   const now = new Date();
   for (let i = 0; i < 7; i++) {
-    const e = schedule.find(s => s.day === (now.getDay()+i)%7 && s.enabled && s.workout !== 'Rest');
-    if (!e) continue;
-    const [hh, mm] = e.time.split(':').map(Number);
-    const d = new Date(now); d.setDate(now.getDate()+i); d.setHours(hh,mm,0,0);
-    if (d > now) return d;
+    const dayIdx = (now.getDay() + i) % 7;
+    const dayEntry = schedule.find(s => s.day === dayIdx);
+    if (!dayEntry) continue;
+    const slots = (dayEntry.slots ?? [])
+      .filter(sl => sl.enabled && getTask(sl.taskId) && !getTask(sl.taskId).isRest)
+      .sort((a,b) => a.time.localeCompare(b.time));
+    for (const sl of slots) {
+      const [hh, mm] = sl.time.split(':').map(Number);
+      const d = new Date(now); d.setDate(now.getDate()+i); d.setHours(hh,mm,0,0);
+      if (d > now) return d;
+    }
   }
   return null;
 }
 
 // ═══════════════════════════════════════════
-// Calendar Schedule — 7列グリッド
+// Calendar Schedule — 7列グリッド (スロット方式)
 // ═══════════════════════════════════════════
-// タスクの色からinline styleを生成
-function taskStyle(taskName) {
-  const t = tasks.find(t => t.name === taskName) ?? { color: '#888899' };
-  const hex = t.color;
-  const r = parseInt(hex.slice(1,3),16);
-  const g = parseInt(hex.slice(3,5),16);
-  const b = parseInt(hex.slice(5,7),16);
-  return `background:rgba(${r},${g},${b},.2);color:${hex};border-color:rgba(${r},${g},${b},.55)`;
-}
-function isRestTask(name) {
-  return tasks.find(t => t.name === name)?.isRest ?? name === 'Rest';
-}
-
 function renderCalendar() {
+  if (tasks.length === 0) {
+    document.getElementById('cal-table').innerHTML =
+      '<p style="padding:1rem;font-size:.85rem;color:var(--dim)">まず設定タブでタスクを作成してください。</p>';
+    return;
+  }
+
   const today = new Date().getDay();
   const now   = new Date();
   const wrap  = document.getElementById('cal-table');
@@ -711,68 +726,104 @@ function renderCalendar() {
   grid.className = 'cal-grid';
 
   [1,2,3,4,5,6,0].forEach(dayIdx => {
-    const e = schedule.find(s => s.day === dayIdx);
-    if (!e) return;
-
-    const isToday    = dayIdx === today;
-    const isRest     = isRestTask(e.workout);
-    const isDisabled = !e.enabled;
+    const dayEntry = schedule.find(s => s.day === dayIdx);
+    if (!dayEntry) return;
+    const isToday = dayIdx === today;
 
     const offset = (dayIdx - today + 7) % 7;
-    const d = new Date(now);
-    d.setDate(now.getDate() + offset);
+    const d = new Date(now); d.setDate(now.getDate() + offset);
     const dateStr = `${d.getMonth()+1}/${d.getDate()}`;
 
-    const options = tasks.map(t =>
-      `<option value="${t.name}"${t.name===e.workout?' selected':''}>${t.name}</option>`
-    ).join('');
-
     const col = document.createElement('div');
-    col.className = ['cal-col', isToday?'is-today':'', isDisabled?'is-disabled':'', isRest?'is-rest':''].filter(Boolean).join(' ');
+    col.className = ['cal-col', isToday ? 'is-today' : ''].filter(Boolean).join(' ');
     col.dataset.day = dayIdx;
 
     col.innerHTML = `
       <div class="cal-col-head">
-        <div class="cal-wday">${e.dayName}</div>
+        <div class="cal-wday">${dayEntry.dayName}</div>
         <div class="cal-date-lbl">${dateStr}</div>
         ${isToday ? '<div class="cal-today-chip">TODAY</div>' : ''}
       </div>
-      <div class="cal-col-body">
-        <select class="wp" style="${taskStyle(e.workout)}" data-day="${dayIdx}" onchange="onW(this)">
-          ${options}
-        </select>
-        <input type="time" class="cal-ti" value="${e.time}" data-day="${dayIdx}" onchange="onT(this)">
-        <label class="toggle">
-          <input type="checkbox" ${e.enabled?'checked':''} data-day="${dayIdx}" onchange="onTog(this)">
-          <span class="toggle-sl"></span>
-        </label>
-      </div>`;
+      <div class="cal-col-body" id="slots-${dayIdx}"></div>`;
 
     grid.appendChild(col);
   });
 
   wrap.appendChild(grid);
+
+  // Render slots for each day
+  schedule.forEach(dayEntry => {
+    renderDaySlots(dayEntry.day);
+  });
 }
 
-function onW(sel) {
-  const e = schedule.find(s => s.day == sel.dataset.day);
-  e.workout = sel.value;
-  sel.style.cssText = taskStyle(sel.value);
-  syncRow(e.day);
+function renderDaySlots(dayIdx) {
+  const container = document.getElementById(`slots-${dayIdx}`);
+  if (!container) return;
+  const dayEntry = schedule.find(s => s.day === dayIdx);
+  const slots = dayEntry?.slots ?? [];
+
+  const taskOptions = tasks.map(t =>
+    `<option value="${t.id}">${t.name}</option>`
+  ).join('');
+
+  container.innerHTML = slots.map(sl => {
+    const style = taskStyleById(sl.taskId);
+    const selectedOptions = tasks.map(t =>
+      `<option value="${t.id}"${t.id === sl.taskId ? ' selected' : ''}>${t.name}</option>`
+    ).join('');
+    return `
+      <div class="slot-card" data-slot="${sl.id}">
+        <input type="time" class="slot-time" value="${sl.time}"
+          onchange="onSlotTime(${dayIdx},'${sl.id}',this.value)">
+        <select class="slot-task" style="${style}"
+          onchange="onSlotTask(${dayIdx},'${sl.id}',this)">
+          ${selectedOptions}
+        </select>
+        <label class="toggle slot-tog">
+          <input type="checkbox" ${sl.enabled ? 'checked' : ''}
+            onchange="onSlotEnabled(${dayIdx},'${sl.id}',this.checked)">
+          <span class="toggle-sl"></span>
+        </label>
+        <button class="slot-del" onclick="removeSlot(${dayIdx},'${sl.id}')" title="削除">×</button>
+      </div>`;
+  }).join('') + `<button class="add-slot-btn" onclick="addSlot(${dayIdx})">＋ 追加</button>`;
 }
-function onT(inp) { schedule.find(s => s.day == inp.dataset.day).time = inp.value; }
-function onTog(chk) {
-  const e = schedule.find(s => s.day == chk.dataset.day);
-  e.enabled = chk.checked;
-  syncRow(e.day);
+
+function addSlot(dayIdx) {
+  const dayEntry = schedule.find(s => s.day === dayIdx);
+  if (!dayEntry) return;
+  if (tasks.length === 0) { toast('先にタスクを作成してください', true); return; }
+  dayEntry.slots.push({ id: 's_' + Date.now(), taskId: tasks[0].id, time: '07:00', enabled: true });
+  renderDaySlots(dayIdx);
 }
-function syncRow(day) {
-  const e  = schedule.find(s => s.day == day);
-  const el = document.querySelector(`.cal-col[data-day="${day}"]`);
-  if (!el) return;
-  el.classList.toggle('is-disabled', !e.enabled);
-  el.classList.toggle('is-rest',     e.workout === 'Rest');
+
+function removeSlot(dayIdx, slotId) {
+  const dayEntry = schedule.find(s => s.day === dayIdx);
+  if (!dayEntry) return;
+  dayEntry.slots = dayEntry.slots.filter(sl => sl.id !== slotId);
+  renderDaySlots(dayIdx);
 }
+
+function onSlotTime(dayIdx, slotId, value) {
+  const sl = schedule.find(s => s.day === dayIdx)?.slots?.find(sl => sl.id === slotId);
+  if (sl) sl.time = value;
+}
+
+function onSlotTask(dayIdx, slotId, select) {
+  const dayEntry = schedule.find(s => s.day === dayIdx);
+  if (!dayEntry) return;
+  const sl = dayEntry.slots.find(sl => sl.id === slotId);
+  if (!sl) return;
+  sl.taskId = select.value;
+  select.style.cssText = taskStyleById(sl.taskId);
+}
+
+function onSlotEnabled(dayIdx, slotId, checked) {
+  const sl = schedule.find(s => s.day === dayIdx)?.slots?.find(sl => sl.id === slotId);
+  if (sl) sl.enabled = checked;
+}
+
 async function saveSchedule() {
   try {
     const r = await fetch('/.netlify/functions/save-schedule', {
@@ -891,10 +942,11 @@ async function sendLineReport() {
 function renderTaskList() {
   const el = document.getElementById('task-list');
   if (!el) return;
-  const DEFAULTS = ['push','pull','legs','rest'];
-  el.innerHTML = tasks.map(t => {
-    const isDefault = DEFAULTS.includes(t.id);
-    return `
+  if (tasks.length === 0) {
+    el.innerHTML = '<p style="font-size:.82rem;color:var(--dim);padding:.3rem 0">タスクがありません。下のフォームから追加してください。</p>';
+    return;
+  }
+  el.innerHTML = tasks.map(t => `
     <div style="display:flex;align-items:center;gap:.6rem;background:var(--panel2);border:1px solid var(--border);border-radius:4px;padding:.5rem .8rem">
       <span style="width:14px;height:14px;border-radius:50%;background:${t.color};flex-shrink:0;display:inline-block"></span>
       <span style="flex:1;font-size:.88rem">${t.name}</span>
@@ -902,11 +954,8 @@ function renderTaskList() {
       <input type="color" value="${t.color}" title="色を変更"
         style="width:28px;height:28px;border:none;border-radius:3px;cursor:pointer;background:none"
         onchange="updateTaskColor('${t.id}', this.value)">
-      ${isDefault
-        ? '<span style="font-size:.65rem;color:var(--dimmer);min-width:28px;text-align:center">標準</span>'
-        : `<button onclick="deleteTask('${t.id}')" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:1rem;line-height:1;padding:.1rem .3rem" title="削除">×</button>`}
-    </div>`;
-  }).join('');
+      <button onclick="deleteTask('${t.id}')" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:1rem;line-height:1;padding:.1rem .3rem" title="削除">×</button>
+    </div>`).join('');
 }
 
 function addTask() {
@@ -924,10 +973,11 @@ function addTask() {
 }
 
 function deleteTask(id) {
-  const t = tasks.find(t => t.id === id);
-  if (!t) return;
-  // このタスクを使っているスケジュールをRestに変更
-  schedule.forEach(s => { if (s.workout === t.name) s.workout = 'Rest'; });
+  if (!tasks.find(t => t.id === id)) return;
+  // このタスクを使っているスロットを削除
+  schedule.forEach(dayEntry => {
+    dayEntry.slots = (dayEntry.slots ?? []).filter(sl => sl.taskId !== id);
+  });
   tasks = tasks.filter(t => t.id !== id);
   saveTasks();
   renderTaskList();
@@ -959,6 +1009,8 @@ async function testLine() {
 // ═══════════════════════════════════════════
 function openTimer(workout) {
   workout = workout ?? currentWorkout;
+  if (!workout) { toast('タスクがありません。時間割を設定してください。', true); return; }
+  currentWorkout = workout; // update so completeWorkout logs correctly
   document.getElementById('ov-workout').textContent = String(workout).toUpperCase();
   document.getElementById('timer-overlay').classList.add('visible');
   timerAccum = 0; timerPaused = false; timerStart = Date.now();

@@ -49,27 +49,36 @@ export const handler = schedule('* * * * *', async () => {
   }
 
   // ─── 通常スケジュール確認 ───────────────────────────────────────────────
-  const todayEntry = daySchedules.find(
-    s => s.day === currentDay && s.enabled && s.time === currentTime && s.workout !== 'Rest'
-  );
-  if (todayEntry) {
+  const tasks = (await store.get('tasks', { type: 'json' }).catch(() => [])) ?? [];
+  const todayDayEntry = daySchedules.find(s => s.day === currentDay);
+  const todaySlots = (todayDayEntry?.slots ?? []).filter(sl => {
+    if (!sl.enabled || sl.time !== currentTime) return false;
+    const task = tasks.find(t => t.id === sl.taskId);
+    return task && !task.isRest;
+  });
+  for (const sl of todaySlots) {
+    const task = tasks.find(t => t.id === sl.taskId);
     notifications.push({
-      title: `PPL FORCE — ${todayEntry.workout}`,
-      body: workoutMessage(todayEntry.workout),
-      workout: todayEntry.workout,
-      notificationId: `ppl-${currentDay}-${currentTime}`
+      title: `PPL FORCE — ${task.name}`,
+      body: workoutMessage(task.name),
+      workout: task.name,
+      notificationId: `ppl-${currentDay}-${currentTime}-${sl.id}`
     });
   }
 
   // ─── 罰金チェック (23:00 JST) ─────────────────────────────────────────
   const penaltyHour = settings.penaltyHour ?? 23;
   if (currentHour === penaltyHour && currentMin === 0 && settings.penaltyEnabled) {
-    const todayScheduleEntry = daySchedules.find(
-      s => s.day === currentDay && s.enabled && s.workout !== 'Rest'
-    );
-    if (todayScheduleEntry) {
+    const penaltySlots = (todayDayEntry?.slots ?? []).filter(sl => {
+      if (!sl.enabled) return false;
+      const task = tasks.find(t => t.id === sl.taskId);
+      return task && !task.isRest;
+    });
+    if (penaltySlots.length > 0) {
       const log = await store.get(`workout-log-${todayKey}`, { type: 'json' }).catch(() => null);
       if (!log?.completed) {
+        const firstTask = tasks.find(t => t.id === penaltySlots[0].taskId);
+        const workoutName = firstTask?.name ?? 'タスク';
         // 未完了 → 罰金処理
         let penaltyUrl = null;
         if (process.env.STRIPE_SECRET_KEY && settings.penaltyAmount > 0) {
@@ -81,7 +90,7 @@ export const handler = schedule('* * * * *', async () => {
                 price_data: {
                   currency: 'jpy',
                   product_data: {
-                    name: `PPL FORCE 罰金 — ${todayScheduleEntry.workout} (${todayKey})`,
+                    name: `PPL FORCE 罰金 — ${workoutName} (${todayKey})`,
                     description: 'サボった罰金。次こそやれ。'
                   },
                   unit_amount: settings.penaltyAmount
@@ -90,7 +99,7 @@ export const handler = schedule('* * * * *', async () => {
               }],
               success_url: `${process.env.URL ?? 'http://localhost:8888'}/?payment=success`,
               cancel_url:  `${process.env.URL ?? 'http://localhost:8888'}/?payment=cancelled`,
-              metadata: { workout: todayScheduleEntry.workout, date: todayKey }
+              metadata: { workout: workoutName, date: todayKey }
             });
             penaltyUrl = session.url;
           } catch (e) {
@@ -100,14 +109,14 @@ export const handler = schedule('* * * * *', async () => {
 
         // LINE通知
         if (process.env.LINE_CHANNEL_ACCESS_TOKEN && process.env.LINE_USER_ID) {
-          await sendLine(todayScheduleEntry.workout, false, null, penaltyUrl);
+          await sendLine(workoutName, false, null, penaltyUrl);
         }
 
         // Push通知
         notifications.push({
           title: `PPL FORCE — ⚠️ サボり検知`,
-          body: `${todayScheduleEntry.workout}未完了。罰金が発生しました。`,
-          workout: todayScheduleEntry.workout,
+          body: `${workoutName}未完了。罰金が発生しました。`,
+          workout: workoutName,
           notificationId: `penalty-${todayKey}`
         });
       }

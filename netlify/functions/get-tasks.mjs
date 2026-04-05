@@ -1,12 +1,5 @@
 import { getStore } from '@netlify/blobs';
 
-const DEFAULTS = [
-  { id: 'push', name: 'Push',  color: '#ff3c3c', isRest: false },
-  { id: 'pull', name: 'Pull',  color: '#3c8fff', isRest: false },
-  { id: 'legs', name: 'Legs',  color: '#3cff7a', isRest: false },
-  { id: 'rest', name: 'Rest',  color: '#888899', isRest: true  },
-];
-
 export const handler = async () => {
   try {
     const store = getStore('ppl-data');
@@ -14,10 +7,10 @@ export const handler = async () => {
     return {
       statusCode: 200,
       headers: cors(),
-      body: JSON.stringify(saved ?? DEFAULTS)
+      body: JSON.stringify(saved ?? [])
     };
   } catch (err) {
-    return { statusCode: 200, headers: cors(), body: JSON.stringify(DEFAULTS) };
+    return { statusCode: 200, headers: cors(), body: JSON.stringify([]) };
   }
 };
 
