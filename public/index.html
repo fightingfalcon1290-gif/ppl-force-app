@@ -404,6 +404,29 @@
     </div>
   </div>
 
+  <!-- タスク管理 -->
+  <div class="card">
+    <div class="card-title">タスク管理</div>
+    <p class="help-text" style="margin-bottom:.9rem">
+      自由にタスクを追加できます。スケジュールカレンダーに反映されます。<br>
+      <strong>Push / Pull / Legs / Rest</strong> はデフォルトタスクです。
+    </p>
+
+    <div id="task-list" style="display:flex;flex-direction:column;gap:.45rem;margin-bottom:1rem"></div>
+
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+      <input type="text" id="new-task-name" class="form-input" placeholder="タスク名（例: 英語学習）" maxlength="12" style="max-width:160px">
+      <div style="display:flex;align-items:center;gap:.3rem">
+        <input type="color" id="new-task-color" value="#ffa040" style="width:36px;height:36px;border:none;border-radius:4px;cursor:pointer;background:none">
+        <span class="help-text">色</span>
+      </div>
+      <label style="display:flex;align-items:center;gap:.35rem;font-size:.8rem;color:var(--dim)">
+        <input type="checkbox" id="new-task-rest"> 休息タスク
+      </label>
+      <button class="btn btn-red" onclick="addTask()" style="padding:.5rem 1rem">＋ 追加</button>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-title">STEP 4 — 写真（Unsplash）</div>
     <p class="help-text" style="margin-bottom:.9rem">
@@ -433,14 +456,15 @@
 // ═══════════════════════════════════════════
 // State
 // ═══════════════════════════════════════════
-let schedule     = defaultSched();
-let config       = {};
-let todayLog     = null;
-let timerStart   = null;
-let timerPaused  = false;
-let timerAccum   = 0;
-let timerRaf     = null;
-let countdownInt = null;
+let schedule      = defaultSched();
+let tasks         = defaultTasks();
+let config        = {};
+let todayLog      = null;
+let timerStart    = null;
+let timerPaused   = false;
+let timerAccum    = 0;
+let timerRaf      = null;
+let countdownInt  = null;
 let currentWorkout = 'Push';
 
 // ═══════════════════════════════════════════
@@ -466,7 +490,7 @@ function toggleTheme() {
 // ═══════════════════════════════════════════
 window.addEventListener('load', async () => {
   await registerSW();
-  await Promise.all([loadConfig(), loadSchedule(), loadTodayLog()]);
+  await Promise.all([loadConfig(), loadTasks(), loadSchedule(), loadTodayLog()]);
   try { renderDashboard(); }   catch(e) { console.error('dashboard error:', e); }
   try { renderCalendar(); }    catch(e) { console.error('calendar error:', e); }
   try { renderSettingsTab(); } catch(e) { console.error('settings error:', e); }
@@ -501,6 +525,20 @@ async function loadSchedule() {
 async function loadTodayLog() {
   try { todayLog = await fetch('/.netlify/functions/log-workout').then(r => r.json()); }
   catch { todayLog = null; }
+}
+async function loadTasks() {
+  try {
+    const data = await fetch('/.netlify/functions/get-tasks').then(r => r.json());
+    if (Array.isArray(data) && data.length > 0) tasks = data;
+  } catch { /* デフォルト維持 */ }
+}
+function defaultTasks() {
+  return [
+    { id: 'push', name: 'Push',  color: '#ff3c3c', isRest: false },
+    { id: 'pull', name: 'Pull',  color: '#3c8fff', isRest: false },
+    { id: 'legs', name: 'Legs',  color: '#3cff7a', isRest: false },
+    { id: 'rest', name: 'Rest',  color: '#888899', isRest: true  },
+  ];
 }
 function defaultSched() {
   return [
@@ -650,6 +688,19 @@ function nextTime() {
 // ═══════════════════════════════════════════
 // Calendar Schedule — 7列グリッド
 // ═══════════════════════════════════════════
+// タスクの色からinline styleを生成
+function taskStyle(taskName) {
+  const t = tasks.find(t => t.name === taskName) ?? { color: '#888899' };
+  const hex = t.color;
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `background:rgba(${r},${g},${b},.2);color:${hex};border-color:rgba(${r},${g},${b},.55)`;
+}
+function isRestTask(name) {
+  return tasks.find(t => t.name === name)?.isRest ?? name === 'Rest';
+}
+
 function renderCalendar() {
   const today = new Date().getDay();
   const now   = new Date();
@@ -659,28 +710,25 @@ function renderCalendar() {
   const grid = document.createElement('div');
   grid.className = 'cal-grid';
 
-  // 月〜日の順（1,2,3,4,5,6,0）
   [1,2,3,4,5,6,0].forEach(dayIdx => {
     const e = schedule.find(s => s.day === dayIdx);
     if (!e) return;
 
     const isToday    = dayIdx === today;
-    const isRest     = e.workout === 'Rest';
+    const isRest     = isRestTask(e.workout);
     const isDisabled = !e.enabled;
 
-    // 今週の実際の日付を計算
     const offset = (dayIdx - today + 7) % 7;
     const d = new Date(now);
     d.setDate(now.getDate() + offset);
     const dateStr = `${d.getMonth()+1}/${d.getDate()}`;
 
+    const options = tasks.map(t =>
+      `<option value="${t.name}"${t.name===e.workout?' selected':''}>${t.name}</option>`
+    ).join('');
+
     const col = document.createElement('div');
-    col.className = [
-      'cal-col',
-      isToday    ? 'is-today'    : '',
-      isDisabled ? 'is-disabled' : '',
-      isRest     ? 'is-rest'     : '',
-    ].filter(Boolean).join(' ');
+    col.className = ['cal-col', isToday?'is-today':'', isDisabled?'is-disabled':'', isRest?'is-rest':''].filter(Boolean).join(' ');
     col.dataset.day = dayIdx;
 
     col.innerHTML = `
@@ -690,11 +738,8 @@ function renderCalendar() {
         ${isToday ? '<div class="cal-today-chip">TODAY</div>' : ''}
       </div>
       <div class="cal-col-body">
-        <select class="wp ${e.workout.toLowerCase()}" data-day="${dayIdx}" onchange="onW(this)">
-          <option${e.workout==='Push'?' selected':''}>Push</option>
-          <option${e.workout==='Pull'?' selected':''}>Pull</option>
-          <option${e.workout==='Legs'?' selected':''}>Legs</option>
-          <option${e.workout==='Rest'?' selected':''}>Rest</option>
+        <select class="wp" style="${taskStyle(e.workout)}" data-day="${dayIdx}" onchange="onW(this)">
+          ${options}
         </select>
         <input type="time" class="cal-ti" value="${e.time}" data-day="${dayIdx}" onchange="onT(this)">
         <label class="toggle">
@@ -712,7 +757,7 @@ function renderCalendar() {
 function onW(sel) {
   const e = schedule.find(s => s.day == sel.dataset.day);
   e.workout = sel.value;
-  sel.className = 'wp ' + sel.value.toLowerCase();
+  sel.style.cssText = taskStyle(sel.value);
   syncRow(e.day);
 }
 function onT(inp) { schedule.find(s => s.day == inp.dataset.day).time = inp.value; }
@@ -741,6 +786,7 @@ async function saveSchedule() {
 // Settings
 // ═══════════════════════════════════════════
 function renderSettingsTab() {
+  renderTaskList();
   const btn = document.getElementById('notify-btn');
   if (Notification?.permission === 'granted') { btn.textContent='✅ 通知: 有効'; btn.disabled=true; }
   else if (Notification?.permission === 'denied') { btn.textContent='通知がブロックされています'; btn.disabled=true; }
@@ -839,6 +885,70 @@ async function sendLineReport() {
     r.success ? toast('📲 LINE送信完了！') : toast('LINE送信失敗: '+(r.error??''), true);
   } catch(e) { toast('エラー: ' + e.message, true); }
 }
+// ═══════════════════════════════════════════
+// タスク管理
+// ═══════════════════════════════════════════
+function renderTaskList() {
+  const el = document.getElementById('task-list');
+  if (!el) return;
+  const DEFAULTS = ['push','pull','legs','rest'];
+  el.innerHTML = tasks.map(t => {
+    const isDefault = DEFAULTS.includes(t.id);
+    return `
+    <div style="display:flex;align-items:center;gap:.6rem;background:var(--panel2);border:1px solid var(--border);border-radius:4px;padding:.5rem .8rem">
+      <span style="width:14px;height:14px;border-radius:50%;background:${t.color};flex-shrink:0;display:inline-block"></span>
+      <span style="flex:1;font-size:.88rem">${t.name}</span>
+      ${t.isRest ? '<span style="font-size:.65rem;color:var(--dim);border:1px solid var(--border);padding:.05rem .4rem;border-radius:2px">休息</span>' : ''}
+      <input type="color" value="${t.color}" title="色を変更"
+        style="width:28px;height:28px;border:none;border-radius:3px;cursor:pointer;background:none"
+        onchange="updateTaskColor('${t.id}', this.value)">
+      ${isDefault
+        ? '<span style="font-size:.65rem;color:var(--dimmer);min-width:28px;text-align:center">標準</span>'
+        : `<button onclick="deleteTask('${t.id}')" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:1rem;line-height:1;padding:.1rem .3rem" title="削除">×</button>`}
+    </div>`;
+  }).join('');
+}
+
+function addTask() {
+  const name  = document.getElementById('new-task-name').value.trim();
+  const color = document.getElementById('new-task-color').value;
+  const isRest= document.getElementById('new-task-rest').checked;
+  if (!name) { toast('タスク名を入力してください', true); return; }
+  if (tasks.find(t => t.name === name)) { toast('同じ名前のタスクがすでにあります', true); return; }
+  tasks.push({ id: 't_' + Date.now(), name, color, isRest });
+  document.getElementById('new-task-name').value = '';
+  document.getElementById('new-task-rest').checked = false;
+  saveTasks();
+  renderTaskList();
+  renderCalendar(); // セレクトに新タスクを反映
+}
+
+function deleteTask(id) {
+  const t = tasks.find(t => t.id === id);
+  if (!t) return;
+  // このタスクを使っているスケジュールをRestに変更
+  schedule.forEach(s => { if (s.workout === t.name) s.workout = 'Rest'; });
+  tasks = tasks.filter(t => t.id !== id);
+  saveTasks();
+  renderTaskList();
+  renderCalendar();
+}
+
+function updateTaskColor(id, color) {
+  const t = tasks.find(t => t.id === id);
+  if (t) { t.color = color; saveTasks(); renderCalendar(); }
+}
+
+async function saveTasks() {
+  try {
+    await fetch('/.netlify/functions/save-tasks', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(tasks)
+    });
+    toast('✅ タスクを保存しました');
+  } catch(e) { toast('保存失敗: ' + e.message, true); }
+}
+
 async function testLine() {
   if (!config.line) { toast('LINE未設定 — 環境変数を確認してください', true); return; }
   await sendLineReport();
